@@ -1,0 +1,51 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Node / React
+node_modules/
+dist/
+
+# Environment / secrets
+.env
+*.env
+
+# Datasets
+dataset1/
+dataset_preprocessed/
+processed_dataset/
+yolo_dataset/
+yolo_dataset_/
+yolo_dataset_final/
+
+# Generated data
+uploads/
+augmentation_results/
+image_analysis/
+
+# Model files
+*.pt
+*.pth
+*.onnx
+patchcore_models/
+
+# Training outputs
+runs/
+
+# Large archives
+*.zip
+*.tar
+*.tar.xz
+*.crswap
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+prediction_results/

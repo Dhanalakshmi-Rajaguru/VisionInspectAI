@@ -60,16 +60,18 @@ The application allows users to upload an inspection image, process it through t
 ### Machine Learning
 
 - YOLO
+- PyTorch
+- OpenCV
+- NumPy
 - MVTec AD dataset
 
 ## Project Structure
 
-
+```text
 VisionInspectAI/
 │
 ├── backend/
 │   ├── ml/
-│   ├── uploads/
 │   ├── auth.py
 │   ├── database.py
 │   ├── dependencies.py
@@ -83,9 +85,6 @@ VisionInspectAI/
 │   ├── public/
 │   ├── package.json
 │   └── vite.config.js
-│
-├── models/
-│   └── best (2).pt
 │
 ├── .gitignore
 ├── package.json

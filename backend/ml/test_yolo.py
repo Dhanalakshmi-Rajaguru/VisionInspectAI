@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MODEL_PATH = (
     PROJECT_ROOT
     / "models"
-    / "best (2).pt"
+    / "yolo_model.pt"
 )
 
 

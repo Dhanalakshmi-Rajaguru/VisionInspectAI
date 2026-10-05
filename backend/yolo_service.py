@@ -9,7 +9,7 @@ class YOLOService:
         model_path = (
             Path(__file__).resolve().parent.parent.parent
             / "models"
-            / "best.pt"
+            / "yolo_model.pt"
         )
 
         self.model = YOLO(str(model_path))

@@ -15,21 +15,17 @@ from .severity import (
 )
 
 
-# ============================================================
-# 1. PROJECT ROOT
-# ============================================================
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
-# ============================================================
-# 2. MODEL PATHS
-# ============================================================
+
 
 YOLO_MODEL_PATH = (
     PROJECT_ROOT
     / "models"
-    / "best (2).pt"
+    / "yolo_model.pt"
 )
 
 RESNET_MODEL_PATH = (
@@ -39,10 +35,6 @@ RESNET_MODEL_PATH = (
 )
 
 
-# ============================================================
-# 3. DEVICE
-# ============================================================
-
 device = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"
 )
@@ -50,9 +42,7 @@ device = torch.device(
 print("Device:", device)
 
 
-# ============================================================
-# 4. RESNET18 CLASS NAMES
-# ============================================================
+
 
 class_names = [
     "bent",
@@ -106,10 +96,6 @@ class_names = [
 ]
 
 
-# ============================================================
-# 5. LOAD YOLO
-# ============================================================
-
 print()
 print("Loading YOLO26n...")
 
@@ -120,9 +106,6 @@ yolo_model = YOLO(
 print("YOLO26n loaded successfully!")
 
 
-# ============================================================
-# 6. CREATE RESNET18
-# ============================================================
 
 print()
 print("Loading ResNet18...")
@@ -137,9 +120,7 @@ resnet_model.fc = nn.Linear(
 )
 
 
-# ============================================================
-# 7. LOAD RESNET18 WEIGHTS
-# ============================================================
+
 
 checkpoint = torch.load(
     RESNET_MODEL_PATH,
@@ -169,9 +150,6 @@ resnet_model.eval()
 print("ResNet18 loaded successfully!")
 
 
-# ============================================================
-# 8. RESNET PREPROCESSING
-# ============================================================
 
 resnet_transform = transforms.Compose([
 
@@ -186,54 +164,35 @@ resnet_transform = transforms.Compose([
 ])
 
 
-# ============================================================
-# 9. CLASSIFY DEFECT CROP
-# ============================================================
 
 def classify_crop(crop):
 
     
-    # --------------------------------------------------------
-    # OpenCV uses BGR.
-    # ResNet expects RGB.
-    # --------------------------------------------------------
+   
 
     crop_rgb = cv2.cvtColor(
         crop,
         cv2.COLOR_BGR2RGB
     )
 
-    # --------------------------------------------------------
-    # Convert NumPy array to PIL image
-    # --------------------------------------------------------
 
     image = Image.fromarray(
         crop_rgb
     )
 
-    # --------------------------------------------------------
-    # Apply ResNet preprocessing
-    # --------------------------------------------------------
+    
 
     image_tensor = resnet_transform(
         image
     )
 
-    # --------------------------------------------------------
-    # Add batch dimension
-    # --------------------------------------------------------
-
+    
     image_tensor = image_tensor.unsqueeze(0)
 
-    # --------------------------------------------------------
-    # Move to CPU/GPU
-    # --------------------------------------------------------
+   
 
     image_tensor = image_tensor.to(device)
 
-    # --------------------------------------------------------
-    # Run classification
-    # --------------------------------------------------------
 
     with torch.no_grad():
 
@@ -251,18 +210,12 @@ def classify_crop(crop):
             dim=1
         )
 
-    # --------------------------------------------------------
-    # Get predicted class
-    # --------------------------------------------------------
 
     predicted_class = class_names[
         predicted.item()
     ]
 
-    # --------------------------------------------------------
-    # Convert confidence to percentage
-    # --------------------------------------------------------
-
+    
     confidence_percentage = (
         confidence.item() * 100
     )
@@ -276,9 +229,7 @@ def classify_crop(crop):
     }
 
 
-# ============================================================
-# 10. SIZE SCORE
-# ============================================================
+
 
 def calculate_size_score(
     x1,
@@ -326,9 +277,7 @@ def calculate_size_score(
     )
 
 
-# ============================================================
-# 11. LOCATION SCORE
-# ============================================================
+
 
 def calculate_location_score(
     x1,
@@ -341,9 +290,7 @@ def calculate_location_score(
 
     
 
-    # --------------------------------------------------------
-    # Defect center
-    # --------------------------------------------------------
+    
 
     defect_center_x = (
         x1 + x2
@@ -353,9 +300,7 @@ def calculate_location_score(
         y1 + y2
     ) / 2
 
-    # --------------------------------------------------------
-    # Image center
-    # --------------------------------------------------------
+    
 
     image_center_x = (
         image_width / 2
@@ -365,9 +310,7 @@ def calculate_location_score(
         image_height / 2
     )
 
-    # --------------------------------------------------------
-    # Normalize distance
-    # --------------------------------------------------------
+    
 
     normalized_x = (
         (defect_center_x - image_center_x)
@@ -379,23 +322,17 @@ def calculate_location_score(
         / (image_height / 2)
     )
 
-    # --------------------------------------------------------
-    # Euclidean distance
-    # --------------------------------------------------------
+    
 
     distance = (
         normalized_x ** 2 +
         normalized_y ** 2
     ) ** 0.5
 
-    # Maximum possible distance
-    # from center to corner
+    
     max_distance = 2 ** 0.5
 
-    # --------------------------------------------------------
-    # Convert distance into score
-    # --------------------------------------------------------
-
+    
     location_score = (
         1 -
         (distance / max_distance)
@@ -415,9 +352,7 @@ def calculate_location_score(
     )
 
 
-# ============================================================
-# 12. RUN COMPLETE INSPECTION
-# ============================================================
+
 
 def inspect_image(
     image_path,
@@ -430,9 +365,7 @@ def inspect_image(
         image_path
     )
 
-    # --------------------------------------------------------
-    # Check image
-    # --------------------------------------------------------
+   
 
     if not image_path.exists():
 
@@ -440,9 +373,7 @@ def inspect_image(
             f"Image not found:\n{image_path}"
         )
 
-    # --------------------------------------------------------
-    # Read image
-    # --------------------------------------------------------
+    
 
     image = cv2.imread(
         str(image_path)
@@ -454,15 +385,9 @@ def inspect_image(
             f"Could not read image:\n{image_path}"
         )
 
-    # --------------------------------------------------------
-    # Image dimensions
-    # --------------------------------------------------------
-
     height, width = image.shape[:2]
 
-    # --------------------------------------------------------
-    # YOLO detection
-    # --------------------------------------------------------
+    
 
     results = yolo_model.predict(
         source=str(image_path),
@@ -472,9 +397,7 @@ def inspect_image(
 
     result = results[0]
 
-    # --------------------------------------------------------
-    # No detections
-    # --------------------------------------------------------
+    
 
     if (
         result.boxes is None
@@ -487,19 +410,14 @@ def inspect_image(
             "detections": []
         }
 
-    # --------------------------------------------------------
-    # Process every detection
-    # --------------------------------------------------------
-
+    
     detections = []
 
     for index, box in enumerate(
         result.boxes
     ):
 
-        # ====================================================
-        # YOLO BOUNDING BOX
-        # ====================================================
+       
 
         x1, y1, x2, y2 = (
             box.xyxy[0]
@@ -507,9 +425,7 @@ def inspect_image(
             .numpy()
         )
 
-        # ----------------------------------------------------
-        # Convert coordinates to integers
-        # ----------------------------------------------------
+        
 
         x1 = max(
             0,
@@ -531,35 +447,25 @@ def inspect_image(
             int(y2)
         )
 
-        # ====================================================
-        # YOLO CONFIDENCE
-        # ====================================================
-
+        
         yolo_conf = (
             box.conf[0]
             .cpu()
             .item()
         )
 
-        # ====================================================
-        # CROP DEFECT
-        # ====================================================
+       
 
         crop = image[
             y1:y2,
             x1:x2
         ]
 
-        # ----------------------------------------------------
-        # Make sure crop is valid
-        # ----------------------------------------------------
 
         if crop.size == 0:
             continue
 
-        # ====================================================
-        # RESNET CLASSIFICATION
-        # ====================================================
+        
 
         classification = classify_crop(
             crop
@@ -573,10 +479,7 @@ def inspect_image(
             classification["confidence"]
         )
 
-        # ====================================================
-        # SIZE SCORE
-        # ====================================================
-
+       
         size_score = calculate_size_score(
             x1,
             y1,
@@ -586,10 +489,7 @@ def inspect_image(
             height
         )
 
-        # ====================================================
-        # LOCATION SCORE
-        # ====================================================
-
+        
         location_score = calculate_location_score(
             x1,
             y1,
@@ -598,10 +498,6 @@ def inspect_image(
             width,
             height
         )
-
-        # ====================================================
-        # DEFECT TYPE SCORE
-        # ====================================================
 
         try:
 
@@ -615,9 +511,7 @@ def inspect_image(
 
             defect_type_score = None
 
-        # ====================================================
-        # SEVERITY CALCULATION
-        # ====================================================
+       
 
         if defect_type_score is not None:
 
@@ -632,9 +526,7 @@ def inspect_image(
                 confidence=classification_confidence
             )
 
-            # =================================================
-            # QUALITY ASSESSMENT
-            # =================================================
+           
 
             quality = assess_quality(
 
@@ -659,9 +551,7 @@ def inspect_image(
 
         else:
 
-            # ------------------------------------------------
-            # No severity rule for this defect type
-            # ------------------------------------------------
+            
 
             severity = {
 
@@ -683,24 +573,15 @@ def inspect_image(
                 "manual_review": True
             }
 
-        # ====================================================
-        # STORE DETECTION
-        # ====================================================
+        
 
         detection = {
-
-            # ------------------------------------------------
-            # Detection number
-            # ------------------------------------------------
 
             "detection_number": (
                 index + 1
             ),
 
-            # ------------------------------------------------
-            # YOLO information
-            # ------------------------------------------------
-
+           
             "bounding_box": [
                 x1,
                 y1,
@@ -713,9 +594,6 @@ def inspect_image(
                 2
             ),
 
-            # ------------------------------------------------
-            # ResNet information
-            # ------------------------------------------------
 
             "defect_type": (
                 defect_type
@@ -725,9 +603,7 @@ def inspect_image(
                 classification_confidence
             ),
 
-            # ------------------------------------------------
-            # Severity inputs
-            # ------------------------------------------------
+            
 
             "size_score": (
                 size_score
@@ -745,9 +621,7 @@ def inspect_image(
                 classification_confidence
             ),
 
-            # ------------------------------------------------
-            # Final severity
-            # ------------------------------------------------
+            
 
             "severity_score": (
                 severity[
@@ -767,9 +641,7 @@ def inspect_image(
                 ]
             ),
 
-            # ------------------------------------------------
-            # Final quality decision
-            # ------------------------------------------------
+        
 
             "quality_status": (
                 quality[
@@ -784,17 +656,13 @@ def inspect_image(
             )
         }
 
-        # ----------------------------------------------------
-        # Add detection to list
-        # ----------------------------------------------------
+      
 
         detections.append(
             detection
         )
 
-    # ========================================================
-    # FINAL RESULT
-    # ========================================================
+    
 
     if not detections:
 
@@ -804,23 +672,6 @@ def inspect_image(
             "detections": []
         }
 
-    # ========================================================
-    # DETERMINE OVERALL QUALITY STATUS
-    # ========================================================
-    #
-    # Priority:
-    #
-    # FAIL
-    #   ↓
-    # REWORK
-    #   ↓
-    # REVIEW
-    #   ↓
-    # PASS
-    #
-    # The most serious detection determines
-    # the overall inspection result.
-    # ========================================================
 
     quality_priority = {
         "PASS": 0,
@@ -850,10 +701,7 @@ def inspect_image(
 
             highest_priority = priority
 
-            # ------------------------------------------------
-            # Convert MANUAL_REVIEW into REVIEW for the
-            # overall inspection status.
-            # ------------------------------------------------
+           
 
             if status == "MANUAL_REVIEW":
 
@@ -863,9 +711,7 @@ def inspect_image(
 
                 overall_status = status
 
-    # ========================================================
-    # RETURN FINAL RESULT
-    # ========================================================
+   
 
     return {
 

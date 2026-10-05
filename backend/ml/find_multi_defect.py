@@ -5,7 +5,7 @@ from ultralytics import YOLO
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 # YOLO model
-MODEL_PATH = PROJECT_ROOT / "models" / "best (2).pt"
+MODEL_PATH = PROJECT_ROOT / "models" / "yolo_model.pt"
 
 # Dataset
 DATASET_PATH = PROJECT_ROOT / "dataset1"

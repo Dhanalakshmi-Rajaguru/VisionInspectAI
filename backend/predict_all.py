@@ -6,7 +6,7 @@ from ultralytics import YOLO
 MODEL_PATH = (
     Path(__file__).resolve().parent.parent
     / "models"
-    / "best (2).pt"
+    / "yolo_model.pt"
 )
 
 model = YOLO(str(MODEL_PATH))

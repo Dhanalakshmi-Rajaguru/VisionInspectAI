@@ -10,7 +10,7 @@ class YOLOService:
         model_path = (
     Path(__file__).resolve().parent.parent.parent
     / "models"
-    / "best (2).pt")
+    / "yolo_model.pt")
 
         if not model_path.exists():
             raise FileNotFoundError(

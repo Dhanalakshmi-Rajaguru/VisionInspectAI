@@ -49,3 +49,6 @@ runs/
 Thumbs.db
 
 prediction_results/
+
+# Evaluation generated outputs
+failure_cases/

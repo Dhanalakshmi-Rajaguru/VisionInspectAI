@@ -9,8 +9,10 @@ node_modules/
 dist/
 
 # Environment / secrets
+
 .env
-*.env
+.env.*
+!.env.example
 
 # Datasets
 dataset1/

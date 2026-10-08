@@ -100,8 +100,11 @@ app = FastAPI(
 
 allowed_origins = [
     FRONTEND_URL,
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
 ]
-
 # Keep localhost:5174 available for the Vite fallback/development
 # port that has been used in this project.
 if "http://localhost:5174" not in allowed_origins:

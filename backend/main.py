@@ -2,8 +2,11 @@ from pathlib import Path
 import uuid
 import csv
 import io
+import os
 
 from datetime import datetime, timedelta, timezone
+
+from dotenv import load_dotenv
 
 from fastapi import (
     FastAPI,
@@ -54,6 +57,36 @@ from reportlab.platypus import (
 )
 
 
+# ============================================================
+# ENVIRONMENT CONFIGURATION
+# ============================================================
+
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+
+if not SECRET_KEY:
+    raise RuntimeError(
+        "SECRET_KEY is not configured. "
+        "Please create backend/.env"
+    )
+
+ALGORITHM = "HS256"
+
+ACCESS_TOKEN_EXPIRE_MINUTES = int(
+    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")
+)
+
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "http://localhost:5173"
+)
+
+
+# ============================================================
+# FASTAPI APPLICATION
+# ============================================================
+
 app = FastAPI(
     title="VisionInspect AI",
     description="AI Manufacturing Quality Inspection API",
@@ -61,20 +94,32 @@ app = FastAPI(
 )
 
 
+# ============================================================
+# CORS
+# ============================================================
+
+allowed_origins = [
+    FRONTEND_URL,
+]
+
+# Keep localhost:5174 available for the Vite fallback/development
+# port that has been used in this project.
+if "http://localhost:5174" not in allowed_origins:
+    allowed_origins.append("http://localhost:5174")
+
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-
+# ============================================================
+# DATABASE
+# ============================================================
 
 Base.metadata.create_all(bind=engine)
 
@@ -84,17 +129,14 @@ def get_db():
 
     try:
         yield db
+
     finally:
         db.close()
 
 
-
-
-SECRET_KEY = "visioninspect-secret-key"
-
-ALGORITHM = "HS256"
-
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+# ============================================================
+# SECURITY CONFIGURATION
+# ============================================================
 
 pwd_context = CryptContext(
     schemes=["bcrypt"],
@@ -104,7 +146,9 @@ pwd_context = CryptContext(
 security = HTTPBearer()
 
 
-
+# ============================================================
+# PASSWORD FUNCTIONS
+# ============================================================
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
@@ -121,6 +165,9 @@ def verify_password(
     )
 
 
+# ============================================================
+# JWT TOKEN
+# ============================================================
 
 def create_access_token(
     user_id: int,
@@ -147,6 +194,9 @@ def create_access_token(
     )
 
 
+# ============================================================
+# CURRENT USER
+# ============================================================
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -166,6 +216,7 @@ def get_current_user(
         user_id = payload.get("sub")
 
         if user_id is None:
+
             raise HTTPException(
                 status_code=401,
                 detail="Invalid token",
@@ -199,6 +250,9 @@ def get_current_user(
     return user
 
 
+# ============================================================
+# ROLE CHECK
+# ============================================================
 
 def require_role(required_role: str):
 
@@ -220,6 +274,10 @@ def require_role(required_role: str):
     return role_checker
 
 
+# ============================================================
+# QUALITY ENGINEER ACCESS
+# ============================================================
+
 def require_quality_engineer(
     current_user: User = Depends(
         get_current_user
@@ -235,6 +293,10 @@ def require_quality_engineer(
 
     return current_user
 
+
+# ============================================================
+# FACTORY SUPERVISOR ACCESS
+# ============================================================
 
 def require_supervisor(
     current_user: User = Depends(
@@ -252,7 +314,9 @@ def require_supervisor(
     return current_user
 
 
-
+# ============================================================
+# ROOT
+# ============================================================
 
 @app.get("/")
 def root():
@@ -263,7 +327,9 @@ def root():
     }
 
 
-
+# ============================================================
+# DATABASE TEST
+# ============================================================
 
 @app.get("/db-test")
 def db_test(
@@ -287,7 +353,9 @@ def db_test(
         )
 
 
-
+# ============================================================
+# REGISTER
+# ============================================================
 
 @app.post("/auth/register")
 def register(
@@ -342,7 +410,9 @@ def register(
     }
 
 
-
+# ============================================================
+# LOGIN
+# ============================================================
 
 @app.post("/auth/login")
 def login(
@@ -392,6 +462,9 @@ def login(
     }
 
 
+# ============================================================
+# CURRENT USER
+# ============================================================
 
 @app.get("/auth/me")
 def get_me(
@@ -408,7 +481,9 @@ def get_me(
     }
 
 
-
+# ============================================================
+# GET USERS
+# ============================================================
 
 @app.get("/users")
 def get_users(
@@ -435,7 +510,9 @@ def get_users(
     ]
 
 
-
+# ============================================================
+# CREATE USER
+# ============================================================
 
 @app.post("/users")
 def create_user(
@@ -495,7 +572,9 @@ def create_user(
     }
 
 
-
+# ============================================================
+# UPDATE USER
+# ============================================================
 
 @app.put("/users/{user_id}")
 def update_user(
@@ -579,7 +658,9 @@ def update_user(
     }
 
 
-
+# ============================================================
+# DELETE USER
+# ============================================================
 
 @app.delete("/users/{user_id}")
 def delete_user(
@@ -618,7 +699,9 @@ def delete_user(
     }
 
 
-
+# ============================================================
+# INSPECTION / PREDICTION
+# ============================================================
 
 @app.post("/inspection/predict")
 async def inspection_predict(
@@ -683,9 +766,10 @@ async def inspection_predict(
     if not isinstance(detections, list):
         detections = []
 
-    
-
-    prediction = result.get("status", "REVIEW")
+    prediction = result.get(
+        "status",
+        "REVIEW",
+    )
 
     allowed_statuses = {
         "PASS",
@@ -697,7 +781,6 @@ async def inspection_predict(
     if prediction not in allowed_statuses:
         prediction = "REVIEW"
 
-    
     selected_detection = None
 
     if detections:
@@ -709,7 +792,6 @@ async def inspection_predict(
             ),
         )
 
-    
     filename = (
         f"{uuid.uuid4().hex}"
         f"{file_extension}"
@@ -734,7 +816,6 @@ async def inspection_predict(
         image_bytes
     )
 
-    
     defect_type = None
     classification_confidence = None
     severity_score = None
@@ -779,8 +860,6 @@ async def inspection_predict(
             )
         )
 
-    
-
     inspection = Inspection(
         user_id=current_user.id,
         image_path=str(image_path),
@@ -805,7 +884,6 @@ async def inspection_predict(
     db.commit()
     db.refresh(inspection)
 
-   
     return {
         "message": "Inspection completed successfully",
 
@@ -831,7 +909,9 @@ async def inspection_predict(
     }
 
 
-
+# ============================================================
+# GET INSPECTIONS
+# ============================================================
 
 @app.get("/inspections")
 def get_inspections(
@@ -888,7 +968,9 @@ def get_inspections(
     ]
 
 
-
+# ============================================================
+# DEFECT CLASSIFICATION
+# ============================================================
 
 @app.post("/defects/classify")
 async def classify_defect(
@@ -928,7 +1010,10 @@ async def classify_defect(
     if not isinstance(detections, list):
         detections = []
 
-    status = result.get("status", "REVIEW")
+    status = result.get(
+        "status",
+        "REVIEW",
+    )
 
     allowed_statuses = {
         "PASS",
@@ -955,7 +1040,9 @@ async def classify_defect(
     }
 
 
-
+# ============================================================
+# DEFECT SEVERITY
+# ============================================================
 
 @app.get("/defects/{inspection_id}/severity")
 def get_defect_severity(
@@ -1014,7 +1101,9 @@ def get_defect_severity(
     }
 
 
-
+# ============================================================
+# QUALITY REPORT
+# ============================================================
 
 @app.get(
     "/inspections/{inspection_id}/quality-report"
@@ -1089,6 +1178,9 @@ def get_quality_report(
     }
 
 
+# ============================================================
+# QUALITY SUMMARY
+# ============================================================
 
 @app.get("/reports/quality-summary")
 def quality_summary(
@@ -1153,18 +1245,22 @@ def quality_summary(
         )
 
         if action == "Reject":
+
             failed += 1
 
         elif action == "Rework":
+
             rework += 1
 
         elif action == "Review":
+
             review += 1
 
         elif (
             inspection.prediction == "PASS"
             or action == "Accept"
         ):
+
             passed += 1
 
         if inspection.manual_review:
@@ -1258,7 +1354,9 @@ def quality_summary(
     }
 
 
-
+# ============================================================
+# QUALITY SUMMARY PDF
+# ============================================================
 
 @app.get("/reports/quality-summary/pdf")
 def export_quality_summary_pdf(
@@ -1317,18 +1415,22 @@ def export_quality_summary_pdf(
             action = inspection.recommended_action
 
             if action == "Reject":
+
                 failed += 1
 
             elif action == "Rework":
+
                 rework += 1
 
             elif action == "Review":
+
                 review += 1
 
             elif (
                 inspection.prediction == "PASS"
                 or action == "Accept"
             ):
+
                 passed += 1
 
             if inspection.manual_review:
@@ -1380,8 +1482,6 @@ def export_quality_summary_pdf(
             else 0
         )
 
-        
-
         buffer = io.BytesIO()
 
         document = SimpleDocTemplate(
@@ -1431,7 +1531,6 @@ def export_quality_summary_pdf(
             Spacer(1, 20)
         )
 
-        
         elements.append(
             Paragraph(
                 "Quality Summary",
@@ -1509,7 +1608,6 @@ def export_quality_summary_pdf(
             Spacer(1, 20)
         )
 
-       
         elements.append(
             Paragraph(
                 "Severity Distribution",
@@ -1604,8 +1702,6 @@ def export_quality_summary_pdf(
             Spacer(1, 20)
         )
 
-        
-
         elements.append(
             Paragraph(
                 "Defect Type Distribution",
@@ -1692,8 +1788,6 @@ def export_quality_summary_pdf(
         elements.append(
             Spacer(1, 20)
         )
-
-        
 
         elements.append(
             Paragraph(
@@ -1814,8 +1908,6 @@ def export_quality_summary_pdf(
             inspection_table
         )
 
-        
-
         document.build(
             elements
         )
@@ -1837,7 +1929,9 @@ def export_quality_summary_pdf(
         db.close()
 
 
-
+# ============================================================
+# QUALITY SUMMARY CSV
+# ============================================================
 
 @app.get(
     "/reports/quality-summary/csv"
@@ -1920,18 +2014,22 @@ def quality_summary_csv(
         )
 
         if action == "Reject":
+
             failed += 1
 
         elif action == "Rework":
+
             rework += 1
 
         elif action == "Review":
+
             review += 1
 
         elif (
             inspection.prediction == "PASS"
             or action == "Accept"
         ):
+
             passed += 1
 
         if inspection.manual_review:
@@ -2146,6 +2244,9 @@ def quality_summary_csv(
     )
 
 
+# ============================================================
+# ANALYTICS SUMMARY
+# ============================================================
 
 @app.get("/analytics/summary")
 def analytics_summary(
@@ -2205,7 +2306,6 @@ def analytics_summary(
 
     daily_data = {}
 
-    
     confidence_distribution = {
         "<70%": 0,
         "70-79%": 0,
@@ -2316,7 +2416,6 @@ def analytics_summary(
                     date_key
                 ]["passed"] += 1
 
-        
         if inspection.classification_confidence is not None:
 
             confidence = (
@@ -2428,14 +2527,14 @@ def analytics_summary(
         "defect_distribution":
             defect_distribution,
 
-        
-
         "confidence_distribution":
             confidence_distribution,
     }
 
 
-
+# ============================================================
+# HEALTH CHECK
+# ============================================================
 
 @app.get("/health")
 def health():

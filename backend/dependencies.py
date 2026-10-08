@@ -1,3 +1,8 @@
+import os
+
+from pathlib import Path
+from dotenv import load_dotenv
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
@@ -7,13 +12,46 @@ from database import get_db
 from models import User
 
 
-SECRET_KEY = "your-secret-key"
+# ============================================================
+# LOAD ENVIRONMENT VARIABLES
+# ============================================================
+
+BASE_DIR = Path(__file__).resolve().parent
+ENV_FILE = BASE_DIR / ".env"
+
+load_dotenv(ENV_FILE)
+
+
+# ============================================================
+# JWT CONFIGURATION
+# ============================================================
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+
+if not SECRET_KEY:
+    raise ValueError(
+        "SECRET_KEY is not set in backend/.env"
+    )
+
 ALGORITHM = "HS256"
+
+ACCESS_TOKEN_EXPIRE_MINUTES = int(
+    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60")
+)
+
+
+# ============================================================
+# OAUTH2
+# ============================================================
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/auth/login"
 )
 
+
+# ============================================================
+# GET CURRENT USER
+# ============================================================
 
 def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -51,6 +89,10 @@ def get_current_user(
 
     return user
 
+
+# ============================================================
+# ROLE CHECK
+# ============================================================
 
 def require_role(required_role: str):
 

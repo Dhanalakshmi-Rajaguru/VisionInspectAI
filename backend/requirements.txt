@@ -1,5 +1,5 @@
 fastapi==0.115.12
-uvicorn[standard]==0.34.2
+uvicorn[standard]==0.52.4
 
 sqlalchemy==2.0.40
 psycopg2-binary==2.9.10
@@ -13,9 +13,10 @@ email-validator==2.2.0
 python-multipart==0.0.20
 
 # Machine Learning / Computer Vision
-torch
-torchvision
-ultralytics
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.8.0+cpu
+torchvision==0.23.0+cpu
+ultralytics==8.4.142
 opencv-python
 numpy
 Pillow

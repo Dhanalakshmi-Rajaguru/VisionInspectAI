@@ -1,0 +1,2 @@
+models/yolo_model.pt filter=lfs diff=lfs merge=lfs -text
+models/defect_classifier_resnet18_final.pth filter=lfs diff=lfs merge=lfs -text

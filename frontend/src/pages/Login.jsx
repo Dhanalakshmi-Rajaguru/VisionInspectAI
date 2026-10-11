@@ -85,21 +85,26 @@ function Login() {
 
     try {
       setLoading(true);
-      const response = await fetch(
-        ${API_URL}/auth/register,
-      {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name,
-            email,
-            password,
-            role,
-          }),
-        }
-      );
+      const API_URL = (
+  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000"
+).replace(/\/+$/, "");
+
+const response = await fetch(
+  `${API_URL}/auth/register`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name,
+      email,
+      password,
+      role,
+    }),
+  }
+);
+
 
       const data = await response.json();
 

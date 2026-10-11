@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 
 function Users({ user }) {
-  const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+  const API_URL = (
+  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000"
+).replace(/\/+$/, "");
 
   const [users, setUsers] = useState([]);
 

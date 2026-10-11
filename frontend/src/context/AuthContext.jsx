@@ -230,10 +230,7 @@ export function AuthProvider({ children }) {
         error instanceof TypeError &&
         error.message === "Failed to fetch"
       ) {
-
-        throw new Error(
-          "Cannot connect to VisionInspect AI server. Make sure FastAPI is running on http://127.0.0.1:8000."
-        );
+        throw new Error(`Cannot connect to VisionInspect AI server at ${API_URL}. Please check the backend connection.`);
       }
 
 

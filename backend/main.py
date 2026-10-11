@@ -117,13 +117,12 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:5174",
-        "https://vision-inspect-ai-hb2j.vercel.app",
+        "https://vision-inspect-ai-ka3m.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 # ============================================================
 # DATABASE

@@ -85,10 +85,9 @@ function Login() {
 
     try {
       setLoading(true);
-
       const response = await fetch(
-        "http://127.0.0.1:8000/auth/register",
-        {
+        ${API_URL}/auth/register,
+      {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

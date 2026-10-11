@@ -116,8 +116,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:5174",
+        "https://visioninspectai-frontend.vercel.app",
     ],
-    allow_origin_regex=r"^https://vision-inspect-ai-[a-z0-9-]+\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

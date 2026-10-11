@@ -115,7 +115,7 @@ if "http://localhost:5174" not in allowed_origins:
 allow_origins=[
     "http://localhost:5173",
     "http://localhost:5174",
-    "https://vision-inspect-ai-gjr3.vercel.app",
+    "https://vision-inspect-ai-y63t.vercel.app",
 ],
     allow_credentials=True,
     allow_methods=["*"],

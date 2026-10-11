@@ -112,13 +112,11 @@ if "http://localhost:5174" not in allowed_origins:
 
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "https://vision-inspect-ai-ka3m.vercel.app",
-    ],
+allow_origins=[
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "https://vision-inspect-ai-gjr3.vercel.app",
+],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

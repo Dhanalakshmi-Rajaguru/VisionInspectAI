@@ -166,68 +166,26 @@ resnet_transform = transforms.Compose([
 
 
 
+
 def classify_crop(crop):
+    crop_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
+    image = Image.fromarray(crop_rgb)
 
-    
-   
+    image_tensor = resnet_transform(image).unsqueeze(0).to(device)
 
-    crop_rgb = cv2.cvtColor(
-        crop,
-        cv2.COLOR_BGR2RGB
-    )
+    with torch.inference_mode():
+        output = resnet_model(image_tensor)
+        probabilities = torch.softmax(output, dim=1)
+        confidence, predicted = torch.max(probabilities, dim=1)
 
-
-    image = Image.fromarray(
-        crop_rgb
-    )
-
-    
-
-    image_tensor = resnet_transform(
-        image
-    )
-
-    
-    image_tensor = image_tensor.unsqueeze(0)
-
-   
-
-    image_tensor = image_tensor.to(device)
-
-
-    with torch.no_grad():
-
-        output = resnet_model(
-            image_tensor
-        )
-
-        probabilities = torch.softmax(
-            output,
-            dim=1
-        )
-
-        confidence, predicted = torch.max(
-            probabilities,
-            dim=1
-        )
-
-
-    predicted_class = class_names[
-        predicted.item()
-    ]
-
-    
-    confidence_percentage = (
-        confidence.item() * 100
-    )
+    predicted_class = class_names[predicted.item()]
+    confidence_percentage = confidence.item() * 100
 
     return {
         "defect_type": predicted_class,
-        "confidence": round(
-            confidence_percentage,
-            2
-        )
+        "confidence": round(confidence_percentage, 2)
     }
+
 
 
 

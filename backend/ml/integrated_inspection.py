@@ -376,12 +376,12 @@ def inspect_image(
     yolo_start = time.perf_counter()
 
     results = yolo_model.predict(
-        source=str(image_path),
-        conf=yolo_confidence,
-        imgsz=320,
-        device=0 if torch.cuda.is_available() else "cpu",
-        verbose=False
-    )
+    source=image,
+    conf=yolo_confidence,
+    imgsz=320,
+    device="cpu",
+    verbose=False
+)
 
     yolo_elapsed = time.perf_counter() - yolo_start
     print(f"[PERFORMANCE] YOLO inference: {yolo_elapsed:.3f} seconds")

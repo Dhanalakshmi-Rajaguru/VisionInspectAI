@@ -167,26 +167,37 @@ resnet_transform = transforms.Compose([
 
 
 
-def classify_crop(crop):
-    crop_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
-    image = Image.fromarray(crop_rgb)
+def classify_crops(crops):
+    """
+    Classify multiple defect crops in one ResNet forward pass.
+    Returns one prediction dictionary per crop, preserving input order.
+    """
+    if not crops:
+        return []
 
-    image_tensor = resnet_transform(image).unsqueeze(0).to(device)
+    tensors = []
+
+    for crop in crops:
+        crop_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
+        image = Image.fromarray(crop_rgb)
+        tensors.append(resnet_transform(image))
+
+    batch = torch.stack(tensors).to(device)
 
     with torch.inference_mode():
-        output = resnet_model(image_tensor)
-        probabilities = torch.softmax(output, dim=1)
-        confidence, predicted = torch.max(probabilities, dim=1)
+        outputs = resnet_model(batch)
+        probabilities = torch.softmax(outputs, dim=1)
+        confidences, predicted = torch.max(probabilities, dim=1)
 
-    predicted_class = class_names[predicted.item()]
-    confidence_percentage = confidence.item() * 100
+    predictions = []
 
-    return {
-        "defect_type": predicted_class,
-        "confidence": round(confidence_percentage, 2)
-    }
+    for predicted_index, confidence in zip(predicted.cpu().tolist(), confidences.cpu().tolist()):
+        predictions.append({
+            "defect_type": class_names[predicted_index],
+            "confidence": round(confidence * 100, 2),
+        })
 
-
+    return predictions
 
 
 
@@ -377,66 +388,48 @@ def inspect_image(
         }
 
     
+    # Prepare all valid detection crops first, then classify them together.
     detections = []
-    classification_elapsed = 0.0
+    valid_detections = []
 
-    for index, box in enumerate(
-        result.boxes
-    ):
-
-       
-
+    for index, box in enumerate(result.boxes):
         x1, y1, x2, y2 = (
-            box.xyxy[0]
-            .cpu()
-            .numpy()
+            box.xyxy[0].cpu().numpy()
         )
 
-        
+        x1 = max(0, int(x1))
+        y1 = max(0, int(y1))
+        x2 = min(width, int(x2))
+        y2 = min(height, int(y2))
 
-        x1 = max(
-            0,
-            int(x1)
-        )
-
-        y1 = max(
-            0,
-            int(y1)
-        )
-
-        x2 = min(
-            width,
-            int(x2)
-        )
-
-        y2 = min(
-            height,
-            int(y2)
-        )
-
-        
-        yolo_conf = (
-            box.conf[0]
-            .cpu()
-            .item()
-        )
-
-       
-
-        crop = image[
-            y1:y2,
-            x1:x2
-        ]
-
-
+        crop = image[y1:y2, x1:x2]
         if crop.size == 0:
             continue
 
-        
+        yolo_conf = box.conf[0].cpu().item()
 
-        classification_start = time.perf_counter()
-        classification = classify_crop(crop)
-        classification_elapsed += time.perf_counter() - classification_start
+        valid_detections.append({
+            "index": index,
+            "box": (x1, y1, x2, y2),
+            "yolo_conf": yolo_conf,
+            "crop": crop,
+        })
+
+    classification_start = time.perf_counter()
+    classifications = classify_crops(
+        [item["crop"] for item in valid_detections]
+    )
+    classification_elapsed = time.perf_counter() - classification_start
+    print(
+        f"[PERFORMANCE] ResNet batch classification: "
+        f"{classification_elapsed:.3f} seconds "
+        f"for {len(valid_detections)} crop(s)"
+    )
+
+    for item, classification in zip(valid_detections, classifications):
+        index = item["index"]
+        x1, y1, x2, y2 = item["box"]
+        yolo_conf = item["yolo_conf"]
 
         defect_type = classification[
             "defect_type"

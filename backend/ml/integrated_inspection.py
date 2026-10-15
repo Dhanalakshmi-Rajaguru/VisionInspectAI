@@ -16,6 +16,19 @@ from .severity import (
 )
 
 
+# Conservative CPU thread limits can reduce oversubscription on small hosts.
+# Benchmark on the test service; these settings are not guaranteed to improve speed.
+if not torch.cuda.is_available():
+    torch.set_num_threads(2)
+    try:
+        torch.set_num_interop_threads(1)
+    except RuntimeError:
+        # PyTorch may already have initialized its inter-op thread pool.
+        pass
+
+cv2.setNumThreads(1)
+
+
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -366,6 +379,7 @@ def inspect_image(
         source=str(image_path),
         conf=yolo_confidence,
         imgsz=320,
+        device=0 if torch.cuda.is_available() else "cpu",
         verbose=False
     )
 
@@ -380,7 +394,10 @@ def inspect_image(
         result.boxes is None
         or len(result.boxes) == 0
     ):
-
+        total_elapsed = time.perf_counter() - inspection_start
+        print("[PERFORMANCE] ResNet batch classification: 0.000 seconds for 0 crop(s)")
+        print("[PERFORMANCE] ResNet classification total: 0.000 seconds")
+        print(f"[PERFORMANCE] Total inspection: {total_elapsed:.3f} seconds")
         return {
             "status": "PASS",
             "defects_detected": 0,
@@ -625,7 +642,9 @@ def inspect_image(
     
 
     if not detections:
-
+        total_elapsed = time.perf_counter() - inspection_start
+        print(f"[PERFORMANCE] ResNet classification total: {classification_elapsed:.3f} seconds")
+        print(f"[PERFORMANCE] Total inspection: {total_elapsed:.3f} seconds")
         return {
             "status": "PASS",
             "defects_detected": 0,

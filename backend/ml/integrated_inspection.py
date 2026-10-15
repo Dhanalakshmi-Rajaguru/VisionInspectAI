@@ -365,7 +365,7 @@ def inspect_image(
     results = yolo_model.predict(
         source=str(image_path),
         conf=yolo_confidence,
-        imgsz=416,
+        imgsz=320,
         verbose=False
     )
 

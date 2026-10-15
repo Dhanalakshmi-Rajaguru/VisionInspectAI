@@ -1,4 +1,5 @@
 from pathlib import Path
+import time
 
 import cv2
 import torch
@@ -358,6 +359,7 @@ def inspect_image(
     image_path,
     yolo_confidence=0.25
 ):
+    inspection_start = time.perf_counter()
 
     
 
@@ -389,11 +391,16 @@ def inspect_image(
 
     
 
+    yolo_start = time.perf_counter()
+
     results = yolo_model.predict(
         source=str(image_path),
         conf=yolo_confidence,
         verbose=False
     )
+
+    yolo_elapsed = time.perf_counter() - yolo_start
+    print(f"[PERFORMANCE] YOLO inference: {yolo_elapsed:.3f} seconds")
 
     result = results[0]
 
@@ -412,6 +419,7 @@ def inspect_image(
 
     
     detections = []
+    classification_elapsed = 0.0
 
     for index, box in enumerate(
         result.boxes
@@ -467,9 +475,9 @@ def inspect_image(
 
         
 
-        classification = classify_crop(
-            crop
-        )
+        classification_start = time.perf_counter()
+        classification = classify_crop(crop)
+        classification_elapsed += time.perf_counter() - classification_start
 
         defect_type = classification[
             "defect_type"
@@ -713,13 +721,15 @@ def inspect_image(
 
    
 
+    total_elapsed = time.perf_counter() - inspection_start
+    print(
+        f"[PERFORMANCE] ResNet classification total: "
+        f"{classification_elapsed:.3f} seconds"
+    )
+    print(f"[PERFORMANCE] Total inspection: {total_elapsed:.3f} seconds")
+
     return {
-
         "status": overall_status,
-
-        "defects_detected": len(
-            detections
-        ),
-
+        "defects_detected": len(detections),
         "detections": detections
     }
